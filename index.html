@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fact or Fiction? Quiz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one centered phone-first column; a clinical "monitor" card per question with a stopwatch ring. Single dark look, matching the Gamma deck. */
+:root{
+  --bg:#071C22;          /* deep petrol night */
+  --panel:#0D2A31;       /* card surface */
+  --panel-2:#123A43;     /* raised surface */
+  --line:#1F4F59;        /* hairlines */
+  --fg:#E8F4F2;          /* main text */
+  --muted:#9DBDB9;       /* secondary text */
+  --accent:#3CC9B5;      /* turquoise */
+  --accent-ink:#04201C;  /* text on accent */
+  --ok:#46D19A;          /* correct */
+  --ok-bg:#103D32;
+  --bad:#F07A6E;         /* wrong */
+  --bad-bg:#40211F;
+  --warn:#F2C35B;        /* timer low */
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, #0F4A4E 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #0B3540 0%, transparent 60%),
+    var(--bg);
+  color:var(--fg);
+  font-family:var(--font-body);
+  font-size:17px;
+  line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:20px 40px;
+}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.score-chip{font-family:var(--font-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.score-chip b{color:var(--fg)}
+
+/* progress */
+.progress{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.progress span{height:6px;border-radius:3px;background:var(--line)}
+.progress span.done-ok{background:var(--ok)}
+.progress span.done-bad{background:var(--bad)}
+.progress span.now{background:var(--accent)}
+
+.card{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 18px 40px -24px #000}
+h1,h2{font-family:var(--font-display);font-weight:800;line-height:1.12;margin:0;text-wrap:balance}
+h1{font-size:clamp(34px,8vw,52px)}
+h2{font-size:clamp(20px,4.6vw,24px);font-weight:600;color:var(--muted)}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
+p{margin:0}
+
+/* start */
+.lead{font-size:19px;color:var(--fg)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fact{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+.fact b{display:block;font-family:var(--font-display);font-size:28px;color:var(--accent);font-variant-numeric:tabular-nums}
+.fact span{font-size:14px;color:var(--muted)}
+.note{font-size:14px;color:var(--muted)}
+
+/* question head */
+.qhead{display:flex;gap:16px;align-items:center}
+.qhead .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.timer{position:relative;width:76px;height:76px;flex:none}
+.timer svg{width:76px;height:76px;transform:rotate(-90deg)}
+.timer circle{fill:none;stroke-width:7}
+.timer .track{stroke:var(--line)}
+.timer .bar{stroke:var(--accent);stroke-linecap:round;transition:stroke .3s}
+.timer.low .bar{stroke:var(--warn)}
+.timer.out .bar{stroke:var(--bad)}
+.timer .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.timer .num small{display:block;font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.08em;text-align:center;margin-top:-4px}
+
+.quote{font-family:var(--font-display);font-weight:600;font-size:clamp(20px,5vw,26px);line-height:1.25;border-left:0;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-wrap:pretty}
+.quote .sub{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:500}
+.quote .extra{display:block;color:var(--accent);margin-bottom:6px}
+.ask{font-weight:700;font-size:19px}
+.ask small{display:block;font-weight:400;font-size:15px;color:var(--muted)}
+
+.options{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:14px;align-items:flex-start;width:100%;text-align:left;font:inherit;color:var(--fg);background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:active:not(:disabled){transform:scale(.99)}
+.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opt:disabled{cursor:default}
+.opt .key{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:18px;background:var(--panel-2);border:1.5px solid var(--line)}
+.opt .lbl{min-width:0;padding-top:6px}
+.opt.correct{border-color:var(--ok);background:var(--ok-bg)}
+.opt.correct .key{background:var(--ok);border-color:var(--ok);color:var(--accent-ink)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt.wrong .key{background:var(--bad);border-color:var(--bad);color:var(--accent-ink)}
+.opt.dim{opacity:.55}
+
+.reveal{border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;border:1.5px solid var(--ok);background:var(--ok-bg)}
+.reveal.bad{border-color:var(--bad);background:var(--bad-bg)}
+.reveal .verdict{font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.reveal .verdict.ok{color:var(--ok)}
+.reveal .verdict.bad{color:var(--bad)}
+.reveal .aufl{font-weight:700;font-size:18px;line-height:1.35}
+.reveal .key-msg{color:var(--fg);font-size:16px}
+
+.btn{font:inherit;font-weight:700;font-size:18px;border:0;border-radius:999px;padding:14px 26px;background:var(--accent);color:var(--accent-ink);cursor:pointer;align-self:flex-start;transition:filter .15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+
+/* result */
+.big{font-family:var(--font-display);font-weight:800;font-size:clamp(56px,16vw,88px);line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.big small{font-size:.4em;color:var(--muted)}
+.review{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.review li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.review .n{font-family:var(--font-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.review .t{min-width:0;font-size:15px}
+.review .r{font-family:var(--font-mono);font-size:13px;font-weight:700;white-space:nowrap}
+.review .r.ok{color:var(--ok)}
+.review .r.bad{color:var(--bad)}
+
+@media (max-width:420px){
+  .facts{grid-template-columns:1fr}
+  .card{padding:18px}
+  .timer,.timer svg{width:64px;height:64px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<main class="wrap" id="app" aria-live="polite"></main>
+
+<script>
+const MYTHS = [
+  { quote:"„Ihr Iliosakralgelenk ist blockiert. Ich renke es wieder ein.“",
+    options:{A:"Richtig: Die Manipulation bringt das verschobene Gelenk zurück in die korrekte Position.",
+             B:"Teilweise: Manuelle Therapie kann Symptome lindern; ein dauerhaftes „Einrenken“ ist nicht belegt.",
+             C:"Falsch: Manuelle Therapie hat bei Beschwerden im ISG grundsätzlich keinen Nutzen."},
+    correct:"B",
+    aufl:"Auflösung: B – symptomatische Wirkung ist möglich; eine dauerhafte Reposition ist nicht belegt.",
+    key:"Manuelle Therapie kann Symptome beeinflussen; „Einrenken“ ist nicht belegt." },
+  { quote:"„Hören Sie auf, mit den Fingern zu knacken – davon bekommen Sie Arthrose.“",
+    options:{A:"Richtig: Häufiges Fingerknacken führt nachweislich zu Arthrose.",
+             B:"Falsch: Ein ursächlicher Zusammenhang mit Arthrose ist bisher nicht nachgewiesen.",
+             C:"Teilweise: Knacken verursacht immer Schäden, auch wenn Arthrose nicht sicher ist."},
+    correct:"B",
+    aufl:"Auflösung: B – ein ursächlicher Zusammenhang mit Handarthrose ist nicht nachgewiesen.",
+    key:"Direkte Evidenz zur Arthrose ist begrenzt und überwiegend älter." },
+  { quote:"„Ihre Faszien sind verklebt. Ich werde sie manuell lösen.“",
+    options:{A:"Richtig: Manueller Druck löst Adhäsionen zuverlässig und dauerhaft mechanisch.",
+             B:"Teilweise: Druck kann Symptome oder ROM beeinflussen; ein mechanisches „Lösen“ ist nicht belegt.",
+             C:"Falsch: Faszienbehandlungen können weder Beweglichkeit noch Symptome verändern."},
+    correct:"B",
+    aufl:"Auflösung: B – Effekte sind möglich; das behauptete mechanische Lösen ist nicht belegt.",
+    key:"ROM-Änderung ist nicht gleich Nachweis einer Faszienlösung." },
+  { quote:"„Damit der Muskel wächst, muss ich im Training Mirkorisse im Muskel erzeugen.“",
+    options:{A:"Richtig: Je mehr Muskelschaden und Muskelkater, desto mehr Muskelwachstum.",
+             B:"Falsch: Mechanische Spannung ist zentral; ausgeprägter Muskelschaden ist keine Voraussetzung.",
+             C:"Teilweise: Mikroschäden sind der wichtigste Wachstumsreiz, solange sie nicht schmerzen."},
+    correct:"B",
+    aufl:"Auflösung: B – Muskelwachstum wird nicht durch möglichst viele Mikrorisse ausgelöst.",
+    key:"Muskelschaden ist nicht die primäre Voraussetzung für Hypertrophie." },
+  { quote:"„Sie haben Osteomyelitis. Sie dürfen das Bein nicht belasten, bis die Infektion vollständig verschwunden ist.“",
+    options:{A:"Richtig: Jede Osteomyelitis erfordert vollständige Entlastung bis zur Infektfreiheit.",
+             B:"Falsch: Bei Osteomyelitis darf immer belastet werden, solange es nicht stark schmerzt.",
+             C:"Zu pauschal: Die Belastung richtet sich unter anderem nach Knochenstabilität und ärztlichem Behandlungsplan."},
+    correct:"C",
+    aufl:"Auflösung: C – es gibt keine universelle Belastungsregel für alle Osteomyelitis-Fälle.",
+    key:"Evidenzlücke bei standardisierten Belastungsprotokollen; individuelle Stabilität zählt." },
+  { quote:"„Frische Verletzung? Sie müssen unbedingt kühlen – sonst wird die Entzündung schlimmer und die Heilung langsamer.“",
+    options:{A:"Richtig: Eis verhindert zuverlässig Schwellung und beschleunigt die Gewebeheilung.",
+             B:"Falsch: Kühlen ist bei allen akuten Verletzungen grundsätzlich schädlich.",
+             C:"Zu pauschal: Kälte kann kurzfristig Schmerzen lindern; der Nutzen für Schwellung und Heilung ist begrenzt bzw. unsicher."},
+    correct:"C",
+    aufl:"Auflösung: C – Kälte kann Symptome lindern, ist aber keine garantierte Heilungsmaßnahme.",
+    key:"Die Annahme, dass Kälteanwendungen nach einer Verletzung den Heilungsprozess fördern, gilt in der aktuellen Sportmedizin weitgehend als Mythos" },
+  { quote:"„Dehnen Sie nach dem Training – dann bekommen Sie keinen Muskelkater und er geht schneller weg.“",
+    options:{A:"Richtig: Dehnen verhindert Muskelkater und verkürzt seine Dauer zuverlässig.",
+             B:"Teilweise: Dehnen verhindert Muskelkater nicht aber kann dessen Dauer verkürzen.",
+             C:"Falsch: Dehnen hat keinen Einfluss auf Muskelkater und dessen Dauer."},
+    correct:"C",
+    aufl:"Auflösung: C – die prophylaktische und kurative Wirkung ist ein Mythos",
+    key:"DOMS (delayed onset muscle soreness) wird nicht zuverlässig verhindert oder verkürzt." },
+  { quote:"„Atemnot? Machen Sie die Lippenbremse – das hilft immer!“",
+    options:{A:"Richtig: Lippenbremse Lindert die Atmemnot unabhängig von der Ursache.",
+             B:"Falsch: Lippenbremse ist bei allen Patient:innen mit Atemnot kontraindiziert.",
+             C:"Zu pauschal: Die Lippenbremse sollte individuell und patient*innen-orientiert eingesetzt werden"},
+    correct:"C",
+    aufl:"Auflösung: C – Atemtechnik kann Symptome lindern, aber auch erschweren",
+    key:"Kann Dyspnoe bei ausgewählten Patient:innen lindern; keine universelle Hypoxämie-Behandlung." },
+  { quote:"„Sie haben Metastasen. Deshalb dürfen wir keine manuelle Lymphdrainage machen – sie könnte den Krebs verbreiten.“",
+    options:{A:"Richtig: MLD mobilisiert nachweislich Tumorzellen und fördert Metastasen.",
+             B:"Teilweise: Metastasen allein sind kein generelles Verbot; die Indikation muss individuell geprüft werden.",
+             C:"Immer unbedenklich: MLD kann bei jeder metastasierten Erkrankung ohne weitere Abklärung durchgeführt werden."},
+    correct:"B",
+    aufl:"Auflösung: B – kein pauschales Verbot, aber individuelle Indikations- und Risikoprüfung.",
+    key:"Kein generelles Verbot; allgemeine Kontraindikationen beachten." },
+  { quote:"„Wenn Sie am WC sitzen, stoppen Sie zwischendurch den Harnstrahl – so trainieren Sie Ihren Beckenboden.“",
+    options:{A:"Richtig: Wiederholtes Stoppen beim urinieren ist ein gutes tägliches Beckenbodentraining.",
+             B:"Nicht sicher: Wiederholtes Stoppen beim urinieren ist kein effektives Training.",
+             C:"Falsch: Das Stoppen des Harnstrahls kann negative Konsequenzen mit sich bringen."},
+    correct:"C",
+    aufl:"Auflösung: C – nicht Trainingsmethode zu empfehlen.",
+    key:"Gilt als überholt und potentiell schädlich." }
+];
+const SECONDS = 90;
+const R = 30, CIRC = 2 * Math.PI * R;
+const app = document.getElementById('app');
+
+let state = { view:"start", i:0, answers:Array(10).fill(null), locked:false };
+let timerId = null, deadline = 0;
+
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function score(){return state.answers.filter((a,k)=>a && a===MYTHS[k].correct).length}
+function stopTimer(){ if(timerId){clearInterval(timerId); timerId=null;} }
+
+function header(){
+  const dots = MYTHS.map((m,k)=>{
+    const a = state.answers[k];
+    let c = "";
+    if (a !== null) c = (a === m.correct) ? "done-ok" : "done-bad";
+    else if (state.view==="q" && k===state.i) c = "now";
+    return `<span class="${c}"></span>`;
+  }).join("");
+  return `<div class="top"><p class="brand">Journal Club • MTDG</p><p class="score-chip">Punkte <b>${score()}</b> / 10</p></div>
+          <div class="progress" aria-label="Fortschritt">${dots}</div>`;
+}
+
+function renderStart(){
+  stopTimer();
+  app.innerHTML = `
+    <div class="top"><p class="brand">Journal Club • MTDG</p></div>
+    <section class="card">
+      <p class="eyebrow">Fact or Fiction?</p>
+      <h1>10 Mythen im MTDG-Bereich</h1>
+      <p class="lead">Das haben wir immer schon so gemacht – aber stimmt es auch?</p>
+      <div class="facts">
+        <div class="fact"><b>10</b><span>Mythen</span></div>
+        <div class="fact"><b>90 s</b><span>pro Frage</span></div>
+        <div class="fact"><b>A·B·C</b><span>eine Antwort</span></div>
+      </div>
+      <p class="note">Wählen Sie A, B oder C – und begründen Sie Ihre Entscheidung. Nach jeder Antwort sehen Sie die Auflösung.</p>
+      <button class="btn" id="start">Quiz starten</button>
+    </section>`;
+  document.getElementById('start').onclick = () => { state = { view:"q", i:0, answers:Array(10).fill(null), locked:false }; renderQ(); };
+}
+
+function renderQ(){
+  const m = MYTHS[state.i];
+  const opts = ["A","B","C"].map(k=>`
+      <button class="opt" data-k="${k}" id="opt-${k}">
+        <span class="key">${k}</span><span class="lbl">${esc(m.options[k])}</span>
+      </button>`).join("");
+  app.innerHTML = `${header()}
+    <section class="card">
+      <div class="qhead">
+        <div class="txt">
+          <p class="eyebrow">Mythos ${state.i+1} von 10</p>
+          <p class="ask">Was ist die fachlich beste Antwort?<small>Wählen Sie A, B oder C – und begründen Sie Ihre Entscheidung.</small></p>
+        </div>
+        <div class="timer" id="timer" role="timer" aria-label="Verbleibende Zeit">
+          <svg viewBox="0 0 76 76"><circle class="track" cx="38" cy="38" r="${R}"/><circle class="bar" id="bar" cx="38" cy="38" r="${R}" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg>
+          <div class="num"><div><span id="sec">${SECONDS}</span><small>SEK</small></div></div>
+        </div>
+      </div>
+      <p class="quote"><span class="sub">Typische Aussage im Patient:innenkontakt</span>${m.extra?`<span class="extra">${esc(m.extra)}</span>`:""}${esc(m.quote)}</p>
+      <div class="options" id="opts">${opts}</div>
+      <div id="reveal"></div>
+    </section>`;
+  app.querySelectorAll('.opt').forEach(b => b.onclick = () => answer(b.dataset.k));
+  state.locked = false;
+  window.scrollTo(0,0);
+  startTimer();
+}
+
+function startTimer(){
+  stopTimer();
+  deadline = Date.now() + SECONDS*1000;
+  tick();
+  timerId = setInterval(tick, 200);
+}
+function tick(){
+  const left = Math.max(0, deadline - Date.now());
+  const s = Math.ceil(left/1000);
+  const sec = document.getElementById('sec'), bar = document.getElementById('bar'), t = document.getElementById('timer');
+  if(!sec) return;
+  sec.textContent = s;
+  bar.setAttribute('stroke-dashoffset', String(CIRC * (1 - left/(SECONDS*1000))));
+  t.classList.toggle('low', s <= 15 && s > 0);
+  if(left <= 0){ t.classList.add('out'); answer(null); }
+}
+
+function answer(k){
+  if(state.locked) return;
+  state.locked = true;
+  stopTimer();
+  const m = MYTHS[state.i];
+  state.answers[state.i] = k === null ? "–" : k;
+  app.querySelectorAll('.opt').forEach(b=>{
+    b.disabled = true;
+    const key = b.dataset.k;
+    if(key === m.correct) b.classList.add('correct');
+    else if(key === k) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  const ok = k === m.correct;
+  const verdict = k === null ? `Zeit abgelaufen – richtig ist ${m.correct}` : ok ? `Richtig – Antwort ${m.correct}` : `Leider falsch – richtig ist ${m.correct}`;
+  const last = state.i === MYTHS.length-1;
+  document.getElementById('reveal').innerHTML = `
+    <div class="reveal ${ok?"":"bad"}">
+      <p class="verdict ${ok?"ok":"bad"}">${verdict}</p>
+      <p class="aufl">${esc(m.aufl)}</p>
+      <p class="key-msg">${esc(m.key)}</p>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="next">${last?"Ergebnis anzeigen":"Nächster Mythos"}</button></div>`;
+  // refresh header dots/score
+  const topBlock = app.querySelector('.top'), prog = app.querySelector('.progress');
+  const tmp = document.createElement('div'); tmp.innerHTML = header();
+  topBlock.replaceWith(tmp.children[0]); prog.replaceWith(tmp.children[0]);
+  const nb = document.getElementById('next');
+  nb.onclick = () => { if(last){ state.view="end"; renderEnd(); } else { state.i++; renderQ(); } };
+  nb.focus({preventScroll:true});
+  document.getElementById('reveal').scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+function renderEnd(){
+  stopTimer();
+  const sc = score();
+  const items = MYTHS.map((m,k)=>{
+    const a = state.answers[k]; const ok = a === m.correct;
+    return `<li><span class="n">${String(k+1).padStart(2,"0")}</span><span class="t">${esc(m.aufl)}</span><span class="r ${ok?"ok":"bad"}">${ok?"✓":"✗"} ${a ?? "–"}</span></li>`;
+  }).join("");
+  app.innerHTML = `${header()}
+    <section class="card">
+      <p class="eyebrow">Ergebnis</p>
+      <p class="big">${sc}<small> / 10</small></p>
+      <h2>${sc>=8?"Starke Evidenzkompetenz!":sc>=5?"Gute Basis – einige Mythen halten sich hartnäckig.":"Viele Mythen wirken plausibel – genau darum geht es heute."}</h2>
+      <ol class="review">${items}</ol>
+      <p class="note">„Tradition kann eine Hypothese liefern. Evidenz und klinisches Denken entscheiden, ob wir sie weitergeben.“</p>
+      <div class="row"><button class="btn" id="again">Nochmal spielen</button></div>
+    </section>`;
+  document.getElementById('again').onclick = renderStart;
+}
+
+renderStart();
+</script>
+
+</body>
+</html>
