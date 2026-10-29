@@ -158,7 +158,7 @@ const MYTHS = [
              C:"Teilweise: Knacken verursacht immer Schäden, auch wenn Arthrose nicht sicher ist."},
     correct:"B",
     aufl:"Auflösung: B – ein ursächlicher Zusammenhang mit Handarthrose ist nicht nachgewiesen.",
-    key:"Direkte Evidenz zur Arthrose ist begrenzt und überwiegend älter." },
+    key:"" },
   { quote:"„Ihre Faszien sind verklebt. Ich werde sie manuell lösen.“",
     options:{A:"Richtig: Manueller Druck löst Adhäsionen zuverlässig und dauerhaft mechanisch.",
              B:"Teilweise: Druck kann Symptome oder ROM beeinflussen; ein mechanisches „Lösen“ ist nicht belegt.",
@@ -252,7 +252,7 @@ function renderStart(){
         <div class="fact"><b>90 s</b><span>pro Frage</span></div>
         <div class="fact"><b>A·B·C</b><span>eine Antwort</span></div>
       </div>
-      <p class="note">Wählen Sie A, B oder C – und begründen Sie Ihre Entscheidung. Nach jeder Antwort sehen Sie die Auflösung.</p>
+      <p class="note">Wähle A, B oder C. Nach jeder Antwort siehst du die Auflösung.</p>
       <button class="btn" id="start">Quiz starten</button>
     </section>`;
   document.getElementById('start').onclick = () => { state = { view:"q", i:0, answers:Array(10).fill(null), locked:false }; renderQ(); };
@@ -269,7 +269,7 @@ function renderQ(){
       <div class="qhead">
         <div class="txt">
           <p class="eyebrow">Mythos ${state.i+1} von 10</p>
-          <p class="ask">Was ist die fachlich beste Antwort?<small>Wählen Sie A, B oder C – und begründen Sie Ihre Entscheidung.</small></p>
+          <p class="ask">Was ist die fachlich beste Antwort?<small>Wähle A, B oder C</small></p>
         </div>
         <div class="timer" id="timer" role="timer" aria-label="Verbleibende Zeit">
           <svg viewBox="0 0 76 76"><circle class="track" cx="38" cy="38" r="${R}"/><circle class="bar" id="bar" cx="38" cy="38" r="${R}" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg>
@@ -323,7 +323,7 @@ function answer(k){
     <div class="reveal ${ok?"":"bad"}">
       <p class="verdict ${ok?"ok":"bad"}">${verdict}</p>
       <p class="aufl">${esc(m.aufl)}</p>
-      <p class="key-msg">${esc(m.key)}</p>
+      ${m.key?`<p class="key-msg">${esc(m.key)}</p>`:""}
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" id="next">${last?"Ergebnis anzeigen":"Nächster Mythos"}</button></div>`;
   // refresh header dots/score
